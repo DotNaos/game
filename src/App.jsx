@@ -28,7 +28,7 @@ function App() {
           }}
         />
         <Suspense>
-          <Physics debug>
+          <Physics>
             <Experience downgradedPerformance={downgradedPerformance} />
           </Physics>
         </Suspense>

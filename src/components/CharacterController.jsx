@@ -30,17 +30,11 @@ export const CharacterController = ({
 
   const scene = useThree((state) => state.scene);
   const spawn = () => {
-    const spawns = [];
-    for (let i = 0; i < 1000; i++) {
-      const spawn = scene.getObjectByName(`spawn_${i}`);
-      if (spawn) {
-        spawns.push(spawn);
-      } else {
-        break;
-      }
-    }
-    const spawnPos = spawns[Math.floor(Math.random() * spawns.length)].position;
+    const spawnPos = [0, 1, 0].position;
+    if (rigidbody.current && spawnPos) {
     rigidbody.current.setTranslation(spawnPos);
+
+    }
   };
 
   useEffect(() => {
@@ -73,8 +67,8 @@ export const CharacterController = ({
       const playerWorldPos = vec3(rigidbody.current.translation());
       controls.current.setLookAt(
         playerWorldPos.x,
-        playerWorldPos.y + (state.state.dead ? 12 : cameraDistanceY),
-        playerWorldPos.z + (state.state.dead ? 2 : cameraDistanceZ),
+        playerWorldPos.y,
+        playerWorldPos.z + cameraDistanceZ * 3,
         playerWorldPos.x,
         playerWorldPos.y + 1.5,
         playerWorldPos.z,

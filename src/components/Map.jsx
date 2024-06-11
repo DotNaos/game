@@ -3,7 +3,7 @@ import { RigidBody } from "@react-three/rapier";
 import { useEffect } from "react";
 
 export const Map = () => {
-  const map = useGLTF("models/map.glb");
+  const map = useGLTF("models/battle_map_high.glb");
   useEffect(() => {
     map.scene.traverse((child) => {
       if (child.isMesh) {
@@ -14,14 +14,10 @@ export const Map = () => {
   });
   return (
     <>
-      <RigidBody colliders="trimesh" type="fixed">
+      <RigidBody colliders="trimesh" type="fixed" rotation={[0, 0, 0]} position={[0, -2, 0]}>
         <primitive object={map.scene} />
-
-         {/* <mesh >
-              <boxGeometry args={[10, 10, 2]} />
-         </mesh> */}
       </RigidBody>
     </>
   );
 };
-useGLTF.preload("models/map.glb");
+useGLTF.preload("models/battle_map_high.glb");
