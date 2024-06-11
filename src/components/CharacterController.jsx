@@ -27,6 +27,8 @@ export const CharacterController = ({
   const [animation, setAnimation] = useState("Idle");
   const [weapon, setWeapon] = useState("AK");
   const lastShoot = useRef(0);
+  const [angle, setAngle] = useState(0);
+  const [dir, setDir] = useState([0, 0, 0]);
 
   const scene = useThree((state) => state.scene);
   const spawn = () => {
@@ -60,6 +62,8 @@ export const CharacterController = ({
   }, [state.state.health]);
 
   useFrame((_, delta) => {
+    if (!rigidbody.current) return;
+
     // CAMERA FOLLOW
     if (controls.current) {
       const cameraDistanceY = window.innerWidth < 1024 ? 16 : 20;
@@ -82,24 +86,38 @@ export const CharacterController = ({
     }
 
     // Update player position based on joystick state
-    const angle = joystick.angle();
+    setAngle((joystick.angle()+ (Math.PI / 2) * 3) % (Math.PI * 2));
     if (joystick.isJoystickPressed() && angle) {
       setAnimation("Run");
+
       // Clamp rotation to 0 and PI
      character.current.rotation.y =
-       angle + Math.PI / 2 > Math.PI / 2 * 3 || angle + Math.PI / 2 < (Math.PI / 2)
+       angle > Math.PI / 2 && angle <= Math.PI / 2 * 3
          ? (Math.PI / 2) * 3
          : Math.PI / 2;
+
+           const dir = vec3({
+             x: 0,
+             y: Math.sin(angle),
+             z: Math.abs(Math.cos(angle)),
+           }).normalize();
+
+           // console.log(offset)
+           setDir(dir);
+
+
 
 
       // move character in its own direction
       const impulse = {
-        x: Math.sin(angle) * MOVEMENT_SPEED * delta,
+        x: Math.cos(angle) * MOVEMENT_SPEED * delta,
         y: 0,
-        z: Math.cos(angle) * MOVEMENT_SPEED * delta,
+        z: Math.sin(angle) * MOVEMENT_SPEED * delta,
       };
 
       rigidbody.current.applyImpulse(impulse, true);
+
+
     } else {
       setAnimation("Idle");
     }
@@ -188,7 +206,7 @@ export const CharacterController = ({
           />
           {userPlayer && (
             <Crosshair
-              position={[WEAPON_OFFSET.x, WEAPON_OFFSET.y, WEAPON_OFFSET.z]}
+              offset={dir}
             />
           )}
         </group>
@@ -239,36 +257,27 @@ const PlayerInfo = ({ state }) => {
   );
 };
 
-const Crosshair = (props) => {
+const Crosshair = ({offset, props}) => {
+
   return (
     <group {...props}>
-      <mesh position-z={1}>
-        <boxGeometry args={[0.05, 0.05, 0.05]} />
-        <meshBasicMaterial color="black" transparent opacity={0.9} />
-      </mesh>
-      <mesh position-z={2}>
-        <boxGeometry args={[0.05, 0.05, 0.05]} />
-        <meshBasicMaterial color="black" transparent opacity={0.85} />
-      </mesh>
-      <mesh position-z={3}>
-        <boxGeometry args={[0.05, 0.05, 0.05]} />
-        <meshBasicMaterial color="black" transparent opacity={0.8} />
-      </mesh>
-
-      <mesh position-z={4.5}>
-        <boxGeometry args={[0.05, 0.05, 0.05]} />
-        <meshBasicMaterial color="black" opacity={0.7} transparent />
-      </mesh>
-
-      <mesh position-z={6.5}>
-        <boxGeometry args={[0.05, 0.05, 0.05]} />
-        <meshBasicMaterial color="black" opacity={0.6} transparent />
-      </mesh>
-
-      <mesh position-z={9}>
-        <boxGeometry args={[0.05, 0.05, 0.05]} />
-        <meshBasicMaterial color="black" opacity={0.2} transparent />
-      </mesh>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <mesh
+          key={i}
+          position={[
+            offset.x,
+            1 + offset.y * (i + 1),
+            offset.z * (i + 1),
+          ]}
+        >
+          <boxGeometry args={[0.05, 0.05, 0.05]} />
+          <meshBasicMaterial
+            color="white"
+            transparent
+            opacity={0.9 - i * 0.05}
+          />
+        </mesh>
+      ))}
     </group>
   );
 };

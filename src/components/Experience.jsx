@@ -25,6 +25,7 @@ export const Experience = ({ downgradedPerformance = false }) => {
       // For others, it will only sync their state
       const joystick = new Joystick(state, {
         type: "angular",
+
         buttons: [{ id: "fire", label: "Fire" }],
       });
       const newPlayer = { state, joystick };
