@@ -28,7 +28,7 @@ function App() {
           }}
         />
         <Suspense>
-          <Physics>
+          <Physics gravity={[0, -9.8 * 5, 0]}>
             <Experience downgradedPerformance={downgradedPerformance} />
           </Physics>
         </Suspense>

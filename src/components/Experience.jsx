@@ -70,6 +70,9 @@ export const Experience = ({ downgradedPerformance = false }) => {
   };
 
   useEffect(() => {
+    if (bullets.length > 20) {
+      setBullets((bullets) => bullets.slice(1));
+    }
     setNetworkBullets(bullets);
   }, [bullets]);
 

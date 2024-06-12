@@ -26,7 +26,7 @@ export const Bullet = ({ player, dir, position, onHit }) => {
 
   return (
     <group
-      position={[position.x + dir.x * 1.75, position.y + 1 + dir.y * 1.75, 0]}
+      position={[position.x + dir.x * 1.75, position.y + 1.5 + dir.y * 1.75, 0]}
     >
       <RigidBody
         ref={rigidbody}
