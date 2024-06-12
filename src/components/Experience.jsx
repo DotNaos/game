@@ -83,6 +83,9 @@ export const Experience = ({ downgradedPerformance = false }) => {
   const onKilled = (_victim, killer) => {
     const killerState = players.find((p) => p.state.id === killer).state;
     killerState.setState("kills", killerState.state.kills + 1);
+
+    // Respawn the victim
+
   };
 
   return (

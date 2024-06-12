@@ -6,7 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { CharacterSoldier } from "./CharacterSoldier";
 import { Ray } from "three";
 import { Raycaster } from "three";
-import {isMobile} from 'react-device-detect';
+import { isMobile } from "react-device-detect";
+import { InputHandlers } from "./Input";
+import { AudioPlayer } from "./Audio";
+
 const MOVEMENT_SPEED = 202;
 const FIRE_RATE = 380;
 const JUMP_DELAY = 500;
@@ -20,7 +23,6 @@ export const playerSize = {
   heigth: 0.7,
   radius: 0.6,
 };
-
 
 export const CharacterController = ({
   state,
@@ -40,52 +42,13 @@ export const CharacterController = ({
   const lastJump = useRef(0);
   const [angle, setAngle] = useState(0);
   const [dir, setDir] = useState(vec3({ x: 0, y: 0, z: 0 }));
-  const [keys, setKeys] = useState({});
-  const [mouse, setMouse] = useState({ x: 0, y: 0, click: false });
+  const { keys, mouse } = InputHandlers();
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      setKeys((keys) => ({ ...keys, [event.key]: true }));
-    };
 
-    const handleKeyUp = (event) => {
-      setKeys((keys) => ({ ...keys, [event.key]: false }));
-    };
-
-    const handleMouseDown = () => {
-      setMouse((mouse) => ({ ...mouse, click: true }));
-    };
-
-    const handleMouseUp = () => {
-      setMouse((mouse) => ({ ...mouse, click: false }));
-    };
-
-    const handleMouseMove = (event) => {
-      setMouse((mouse) => ({
-        ...mouse,
-        x: event.clientX,
-        y: event.clientY,
-      }));
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-    window.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("mousemove", handleMouseMove);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-      window.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("mouseup", handleMouseUp);
-      window.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, []);
 
   const scene = useThree((state) => state.scene);
   const spawn = () => {
-    const spawnPos = [0, 1, 0].position;
+    const spawnPos = [0, 10, 0].position;
     if (rigidbody.current && spawnPos) {
       rigidbody.current.setTranslation(spawnPos);
     }
@@ -97,21 +60,7 @@ export const CharacterController = ({
     }
   }, []);
 
-  useEffect(() => {
-    if (state.state.dead) {
-      const audio = new Audio("/audios/dead.mp3");
-      audio.volume = 0.5;
-      audio.play();
-    }
-  }, [state.state.dead]);
 
-  useEffect(() => {
-    if (state.state.health < 100) {
-      const audio = new Audio("/audios/hurt.mp3");
-      audio.volume = 0.4;
-      audio.play();
-    }
-  }, [state.state.health]);
 
   useFrame((_, delta) => {
     if (!rigidbody.current) return;
@@ -137,10 +86,9 @@ export const CharacterController = ({
       return;
     }
 
-
     // If device is MOBILE, we will use the joystick to move the player
-    if(isMobile) {
-
+    if (isMobile) {
+      if (!userPlayer) return;
       // Update player position based on joystick state
       setAngle((joystick.angle() + (Math.PI / 2) * 3) % (Math.PI * 2));
 
@@ -148,31 +96,30 @@ export const CharacterController = ({
       var isShooting = joystick.isButtonPressed("fire");
       var shouldJump = joystick.isButtonPressed("jump");
 
-      var moveDirection = angle > Math.PI / 2 && angle <= (Math.PI / 2) * 3 ? Math.PI : 0;
-    }
-    else {
-      const dx = mouse.x - window.innerWidth / 2
+      var moveDirection =
+        angle > Math.PI / 2 && angle <= (Math.PI / 2) * 3 ? Math.PI : 0;
+    } else {
+      //Only do for current player
+      if (!userPlayer) return;
+      const dx = mouse.x - window.innerWidth / 2;
       const dy = window.innerHeight - mouse.y - window.innerHeight / 2;
       const _angle = Math.atan2(dy, dx);
-      setAngle(
-
-      );
+      setAngle();
       // console.log(angle +  (2 * Math.PI) % (Math.PI * 2))
       // Fix negative angles
-      if (_angle < 0) setAngle(2 * Math.PI + _angle)
-      else setAngle(_angle)
+      if (_angle < 0) setAngle(2 * Math.PI + _angle);
+      else setAngle(_angle);
 
       var shouldMove = true;
       var isShooting = mouse.click;
-      var shouldJump = keys[' '];
+      var shouldJump = keys[" "];
 
       // Check if wasd keys are pressed
       var moveDirection = 1;
-      if (keys['a'] ) moveDirection = Math.PI;
-      else if (keys['d']) moveDirection = 0;
+      if (keys["a"]) moveDirection = Math.PI;
+      else if (keys["d"]) moveDirection = 0;
       else shouldMove = false;
     }
-
 
     if (shouldMove) {
       // move character in its own direction
@@ -183,15 +130,12 @@ export const CharacterController = ({
       };
       setAnimation("Run");
 
-
       rigidbody.current.applyImpulse(impulse, true);
     } else {
       setAnimation("Idle");
     }
 
-
     if (angle) {
-
       // Clamp rotation to 0 and PI
       character.current.rotation.y =
         angle > Math.PI / 2 && angle <= (Math.PI / 2) * 3
@@ -210,9 +154,7 @@ export const CharacterController = ({
     // Check if fire button is pressed
     if (isShooting) {
       // fire
-      setAnimation(
-        shouldMove && angle ? "Run_Shoot" : "Idle_Shoot"
-      );
+      setAnimation(shouldMove && angle ? "Run_Shoot" : "Idle_Shoot");
       if (isHost()) {
         if (Date.now() - lastShoot.current > FIRE_RATE) {
           lastShoot.current = Date.now();
@@ -238,13 +180,11 @@ export const CharacterController = ({
 
       const rayDirection = vec3({ x: 0, y: -1, z: 0 }); // direction is down
 
-
       const raycaster = new Raycaster(rayOrigin, rayDirection);
 
       const intersects = raycaster.intersectObjects(scene.children, true);
 
-
-      const isOnGround = intersects.length > 0 && intersects[0].distance < 0.1
+      const isOnGround = intersects.length > 0 && intersects[0].distance < 0.1;
       if (isOnGround) {
         setAnimation("Jump");
         rigidbody.current.applyImpulse({ x: 0, y: 200, z: 0 }, true);
@@ -271,73 +211,88 @@ export const CharacterController = ({
   }, [character.current]);
 
   return (
-    <group {...props} ref={group}>
-      {userPlayer && <CameraControls ref={controls} />}
-      <RigidBody
-        ref={rigidbody}
-        colliders={false}
-        linearDamping={12}
-        lockRotations
-        enabledTranslations={[true, true, false]}
-        type={isHost() ? "dynamic" : "kinematicPosition"}
-        onIntersectionEnter={({ other }) => {
-          if (
-            isHost() &&
-            other.rigidBody.userData.type === "bullet" &&
-            state.state.health > 0
-          ) {
-            const newHealth =
-              state.state.health - other.rigidBody.userData.damage;
-            if (newHealth <= 0) {
-              state.setState("deaths", state.state.deaths + 1);
-              state.setState("dead", true);
-              state.setState("health", 0);
-              rigidbody.current.setEnabled(false);
-              setTimeout(() => {
-                spawnRandomly();
-                rigidbody.current.setEnabled(true);
-                state.setState("health", 100);
-                state.setState("dead", false);
-              }, 2000);
-              onKilled(state.id, other.rigidBody.userData.player);
-            } else {
-              state.setState("health", newHealth);
+    <>
+      <AudioPlayer
+        src="/audios/dead.mp3"
+        volume={0.5}
+        trigger={state.state.dead}
+      />
+      <AudioPlayer
+        src="/audios/hurt.mp3"
+        volume={0.4}
+        trigger={state.state.health < 100}
+      />
+      <group {...props} ref={group}>
+        {userPlayer && <CameraControls ref={controls} />}
+        <RigidBody
+          ref={rigidbody}
+          colliders={false}
+          linearDamping={12}
+          lockRotations
+          enabledTranslations={[true, true, false]}
+          type={isHost() ? "dynamic" : "kinematicPosition"}
+          onIntersectionEnter={({ other }) => {
+            if (
+              isHost() &&
+              other.rigidBody.userData.type === "bullet" &&
+              state.state.health > 0
+            ) {
+              const newHealth =
+                state.state.health - other.rigidBody.userData.damage;
+              if (newHealth <= 0) {
+                state.setState("deaths", state.state.deaths + 1);
+                state.setState("dead", true);
+                state.setState("health", 0);
+                rigidbody.current.setEnabled(false);
+                setTimeout(() => {
+                  spawnRandomly();
+                  rigidbody.current.setEnabled(true);
+                  state.setState("health", 100);
+                  state.setState("dead", false);
+                }, 2000);
+                onKilled(state.id, other.rigidBody.userData.player);
+              } else {
+                state.setState("health", newHealth);
+              }
             }
-          }
-        }}
-      >
-        <PlayerInfo state={state.state} />
-        <group ref={character}>
-          <CharacterSoldier
-            color={state.state.profile?.color}
-            animation={animation}
-            weapon={weapon}
+          }}
+        >
+          <PlayerInfo state={state.state} />
+          <group ref={character}>
+            <CharacterSoldier
+              color={state.state.profile?.color}
+              animation={animation}
+              weapon={weapon}
+            />
+            {userPlayer && <Crosshair offset={dir} />}
+          </group>
+          {userPlayer && (
+            // Finally I moved the light to follow the player
+            // This way we won't need to calculate ALL the shadows but only the ones
+            // that are in the camera view
+            <directionalLight
+              ref={directionalLight}
+              position={[25, 18, -25]}
+              intensity={0.3}
+              castShadow={!downgradedPerformance} // Disable shadows on low-end devices
+              shadow-camera-near={0}
+              shadow-camera-far={100}
+              shadow-camera-left={-20}
+              shadow-camera-right={20}
+              shadow-camera-top={20}
+              shadow-camera-bottom={-20}
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-bias={-0.0001}
+            />
+          )}
+          <CapsuleCollider
+            args={[playerSize.heigth, playerSize.radius]}
+            position={[0, 1.28, 0]}
           />
-          {userPlayer && <Crosshair offset={dir} />}
-        </group>
-        {userPlayer && (
-          // Finally I moved the light to follow the player
-          // This way we won't need to calculate ALL the shadows but only the ones
-          // that are in the camera view
-          <directionalLight
-            ref={directionalLight}
-            position={[25, 18, -25]}
-            intensity={0.3}
-            castShadow={!downgradedPerformance} // Disable shadows on low-end devices
-            shadow-camera-near={0}
-            shadow-camera-far={100}
-            shadow-camera-left={-20}
-            shadow-camera-right={20}
-            shadow-camera-top={20}
-            shadow-camera-bottom={-20}
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-bias={-0.0001}
-          />
-        )}
-        <CapsuleCollider args={[playerSize.heigth, playerSize.radius]} position={[0, 1.28, 0]} />
-      </RigidBody>
-    </group>
+        </RigidBody>
+      </group>
+    </>
   );
 };
 
