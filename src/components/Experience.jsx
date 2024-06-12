@@ -26,8 +26,12 @@ export const Experience = ({ downgradedPerformance = false }) => {
       const joystick = new Joystick(state, {
         type: "angular",
 
-        buttons: [{ id: "fire", label: "Fire" }],
+        buttons: [{ id: "fire", label: "Fire" }, {
+          id: "jump",
+          label: "Jump",
+        }],
       });
+
       const newPlayer = { state, joystick };
       state.setState("health", 100);
       state.setState("deaths", 0);

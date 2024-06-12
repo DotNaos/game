@@ -4,6 +4,7 @@ import { CapsuleCollider, RigidBody, vec3 } from "@react-three/rapier";
 import { isHost } from "playroomkit";
 import { useEffect, useRef, useState } from "react";
 import { CharacterSoldier } from "./CharacterSoldier";
+import { Ray } from "three";
 const MOVEMENT_SPEED = 202;
 const FIRE_RATE = 380;
 export const WEAPON_OFFSET = {
@@ -140,6 +141,24 @@ export const CharacterController = ({
           };
           onFire(newBullet);
         }
+      }
+    }
+
+    // Check if jump button is pressed
+    if (joystick.isPressed("jump")) {
+      // jump
+
+      // Raycast to the ground to check if the player is on the ground
+      const ray = new Ray(
+        vec3(rigidbody.current.translation()),
+        vec3({ x: 0, y: -1, z: 0 })
+      );
+      const groundLayer = 1 << 0;
+
+      if (Physics.Raycast(ray, 0.1, groundLayer)) {
+      setAnimation("Jump");
+
+      rigidbody.current.applyImpulse({ x: 0, y: 10,  z: 0 }, true);
       }
     }
 
