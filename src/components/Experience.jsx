@@ -95,6 +95,8 @@ export const Experience = ({ downgradedPerformance = false }) => {
       {(isHost() ? bullets : networkBullets).map((bullet) => (
         <Bullet
           key={bullet.id}
+          dir={bullet.dir}
+          position={bullet.position}
           {...bullet}
           onHit={(position) => onHit(bullet.id, position)}
         />

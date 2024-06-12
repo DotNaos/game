@@ -28,7 +28,7 @@ export const CharacterController = ({
   const [weapon, setWeapon] = useState("AK");
   const lastShoot = useRef(0);
   const [angle, setAngle] = useState(0);
-  const [dir, setDir] = useState([0, 0, 0]);
+  const [dir, setDir] = useState(vec3({ x: 0, y: 0, z: 0 }));
 
   const scene = useThree((state) => state.scene);
   const spawn = () => {
@@ -97,22 +97,23 @@ export const CharacterController = ({
          : Math.PI / 2;
 
            const dir = vec3({
-             x: 0,
+             x: Math.cos(angle),
              y: Math.sin(angle),
-             z: Math.abs(Math.cos(angle)),
+             z: 0,
            }).normalize();
+
+           console.log(dir)
+
+
 
            // console.log(offset)
            setDir(dir);
-
-
-
 
       // move character in its own direction
       const impulse = {
         x: Math.cos(angle) * MOVEMENT_SPEED * delta,
         y: 0,
-        z: Math.sin(angle) * MOVEMENT_SPEED * delta,
+        z: 0,
       };
 
       rigidbody.current.applyImpulse(impulse, true);
@@ -134,7 +135,7 @@ export const CharacterController = ({
           const newBullet = {
             id: state.id + "-" + +new Date(),
             position: vec3(rigidbody.current.translation()),
-            angle,
+            dir: dir,
             player: state.id,
           };
           onFire(newBullet);
@@ -264,11 +265,7 @@ const Crosshair = ({offset, props}) => {
       {Array.from({ length: 6 }).map((_, i) => (
         <mesh
           key={i}
-          position={[
-            offset.x,
-            1 + offset.y * (i + 1),
-            offset.z * (i + 1),
-          ]}
+          position={[0, 1 + offset.y * (i + 1), Math.abs(offset.x * (i + 1))]}
         >
           <boxGeometry args={[0.05, 0.05, 0.05]} />
           <meshBasicMaterial
