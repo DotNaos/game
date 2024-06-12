@@ -1,6 +1,5 @@
 import { Environment } from "@react-three/drei";
 import {
-  Joystick,
   insertCoin,
   isHost,
   myPlayer,
@@ -19,23 +18,13 @@ export const Experience = ({ downgradedPerformance = false }) => {
     // Start the game
     await insertCoin();
 
-    // Create a joystick controller for each joining player
     onPlayerJoin((state) => {
-      // Joystick will only create UI for current player (myPlayer)
       // For others, it will only sync their state
-      const joystick = new Joystick(state, {
-        type: "angular",
-
-        buttons: [{ id: "fire", label: "Fire" }, {
-          id: "jump",
-          label: "Jump",
-        }],
-      });
-
-      const newPlayer = { state, joystick };
+      const newPlayer = { state };
       state.setState("health", 100);
       state.setState("deaths", 0);
       state.setState("kills", 0);
+
       setPlayers((players) => [...players, newPlayer]);
       state.onQuit(() => {
         setPlayers((players) => players.filter((p) => p.state.id !== state.id));
@@ -91,12 +80,11 @@ export const Experience = ({ downgradedPerformance = false }) => {
   return (
     <>
       <Map />
-      {players.map(({ state, joystick }, index) => (
+      {players.map(({ state }, index) => (
         <CharacterController
           key={state.id}
           state={state}
           userPlayer={state.id === myPlayer()?.id}
-          joystick={joystick}
           onKilled={onKilled}
           onFire={onFire}
           downgradedPerformance={downgradedPerformance}

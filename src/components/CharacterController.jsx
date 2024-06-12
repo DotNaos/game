@@ -2,7 +2,7 @@ import { Billboard, CameraControls, Text } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CapsuleCollider, RigidBody, vec3 } from "@react-three/rapier";
 import { isHost } from "playroomkit";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CharacterSoldier } from "./CharacterSoldier";
 import { Ray } from "three";
 import { Raycaster } from "three";
@@ -26,7 +26,6 @@ export const playerSize = {
 
 export const CharacterController = ({
   state,
-  joystick,
   userPlayer,
   onKilled,
   onFire,
@@ -47,20 +46,18 @@ export const CharacterController = ({
 
 
   const scene = useThree((state) => state.scene);
+
   const spawn = () => {
-    const spawnPos = [0, 10, 0].position;
-    if (rigidbody.current && spawnPos) {
-      rigidbody.current.setTranslation(spawnPos);
-    }
+    const spawnPoint = [Math.random() * 10 - 5, 3, 0];
+    if (rigidbody.current)
+    rigidbody.current.setTranslation(spawnPoint.position);
   };
 
-  useEffect(() => {
-    if (isHost()) {
-      spawn();
-    }
-  }, []);
-
-
+    useLayoutEffect(() => {
+      if (isHost()) {
+        spawn();
+      }
+    }, []);
 
   useFrame((_, delta) => {
     if (!rigidbody.current) return;
@@ -86,40 +83,27 @@ export const CharacterController = ({
       return;
     }
 
-    // If device is MOBILE, we will use the joystick to move the player
-    if (isMobile) {
-      if (!userPlayer) return;
-      // Update player position based on joystick state
-      setAngle((joystick.angle() + (Math.PI / 2) * 3) % (Math.PI * 2));
 
-      var shouldMove = joystick.isJoystickPressed();
-      var isShooting = joystick.isButtonPressed("fire");
-      var shouldJump = joystick.isButtonPressed("jump");
+    //Only do for current player
+    if (!userPlayer) return;
+    const dx = mouse.x - window.innerWidth / 2;
+    const dy = window.innerHeight - mouse.y - window.innerHeight / 2;
+    const _angle = Math.atan2(dy, dx);
+    setAngle();
+    // console.log(angle +  (2 * Math.PI) % (Math.PI * 2))
+    // Fix negative angles
+    if (_angle < 0) setAngle(2 * Math.PI + _angle);
+    else setAngle(_angle);
 
-      var moveDirection =
-        angle > Math.PI / 2 && angle <= (Math.PI / 2) * 3 ? Math.PI : 0;
-    } else {
-      //Only do for current player
-      if (!userPlayer) return;
-      const dx = mouse.x - window.innerWidth / 2;
-      const dy = window.innerHeight - mouse.y - window.innerHeight / 2;
-      const _angle = Math.atan2(dy, dx);
-      setAngle();
-      // console.log(angle +  (2 * Math.PI) % (Math.PI * 2))
-      // Fix negative angles
-      if (_angle < 0) setAngle(2 * Math.PI + _angle);
-      else setAngle(_angle);
+    var shouldMove = true;
+    var isShooting = mouse.click;
+    var shouldJump = keys[" "];
 
-      var shouldMove = true;
-      var isShooting = mouse.click;
-      var shouldJump = keys[" "];
-
-      // Check if wasd keys are pressed
-      var moveDirection = 1;
-      if (keys["a"]) moveDirection = Math.PI;
-      else if (keys["d"]) moveDirection = 0;
-      else shouldMove = false;
-    }
+    // Check if wasd keys are pressed
+    var moveDirection = 1;
+    if (keys["a"]) moveDirection = Math.PI;
+    else if (keys["d"]) moveDirection = 0;
+    else shouldMove = false;
 
     if (shouldMove) {
       // move character in its own direction
@@ -130,6 +114,7 @@ export const CharacterController = ({
       };
       setAnimation("Run");
 
+      if (isHost())
       rigidbody.current.applyImpulse(impulse, true);
     } else {
       setAnimation("Idle");
@@ -187,6 +172,7 @@ export const CharacterController = ({
       const isOnGround = intersects.length > 0 && intersects[0].distance < 0.1;
       if (isOnGround) {
         setAnimation("Jump");
+        if (isHost())
         rigidbody.current.applyImpulse({ x: 0, y: 200, z: 0 }, true);
         lastJump.current = Date.now();
       }
@@ -196,6 +182,7 @@ export const CharacterController = ({
       state.setState("pos", rigidbody.current.translation());
     } else {
       const pos = state.getState("pos");
+      console.log(pos);
       if (pos) {
         rigidbody.current.setTranslation(pos);
       }
@@ -245,7 +232,7 @@ export const CharacterController = ({
                 state.setState("health", 0);
                 rigidbody.current.setEnabled(false);
                 setTimeout(() => {
-                  spawnRandomly();
+                  spawn();
                   rigidbody.current.setEnabled(true);
                   state.setState("health", 100);
                   state.setState("dead", false);
